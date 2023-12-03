@@ -416,7 +416,7 @@ Project management
 
 #+end_src
 
-*** Better header buulets
+*** Better header bullets
 
 #+begin_src emacs-lisp
 
