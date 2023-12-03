@@ -1,55 +1,60 @@
-;; Hmm virker det fortsatt da?
-  (setq-default
-   inhibit-startup-message t
-   custom-file "~/.emacs.d/custom-file.el"
-   fill-column 90
-   frame-title-format (format "%s's Emacs" (capitalize user-login-name))
-   create-lockfiles nil
-   indent-tabs-mode nil
-   auto-save-default nil
-   enable-recursive-minibuffers t)
-  (load-file custom-file)
-  (global-auto-revert-mode t) ;; Update changed files
-  (fset 'yes-or-no-p 'y-or-n-p)
-  (tool-bar-mode -1)
-  (menu-bar-mode -1)
-  (scroll-bar-mode -1)
+;; Set better defaults
+(setq-default
+ inhibit-startup-message t
+ custom-file "~/.emacs.d/custom-file.el"
+ fill-column 90
+ frame-title-format (format "%s's Emacs" (capitalize user-login-name))
+ create-lockfiles nil
+ indent-tabs-mode nil
+;; backup-directory-alist `(("." . ,(concat user-emacs-directory "backups")))
+ auto-save-default nil
+ enable-recursive-minibuffers t
+ )
+(fset 'yes-or-no-p 'y-or-n-p)
+(when (eq system-type 'darwin)
+  (setq
+   mac-option-modifier nil
+   mac-right-option-modifier nil
+   mac-command-modifier 'meta))
+(load-file custom-file)
 
-  (add-hook 'before-save-hook 'delete-trailing-whitespace)
-
-  ;; Make ESC do the same as C-g
-  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
-
-  ;; Change meta to command on macOS
-  (when (eq system-type 'darwin)
-    (setq
-     mac-option-modifier nil
-     mac-right-option-modifier nil
-     mac-command-modifier 'meta))
-
-  ;; Line numbers in mode line and buffer
-  (column-number-mode t)
-  (line-number-mode t)
-  (global-hl-line-mode t)
-
-  (global-display-line-numbers-mode t)
-  (dolist (mode '(org-mode-hook ;; Disable line numbers for certain modes
-                  term-mode-hook
-                  shell-mode-hook
-                  eshell-mode-hook))
-    (add-hook mode (lambda () (display-line-numbers-mode 0))))
-
-(set-face-attribute 'default nil :font "JetBrainsMono Nerd Font" :height 120)
-(set-face-attribute 'fixed-pitch nil :font "JetBrainsMono Nerd Font" :height 120)
-(set-face-attribute 'variable-pitch nil :font "Arial" :height 140 :weight 'regular)
-
+;; Backups
 (setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
-      backup-by-copying      t
-      version-control        t
-      delete-old-versions    t
-      kept-new-versions      10
+      backup-by-copying      t  ; Don't de-link hard links
+      version-control        t  ; Use version numbers on backups
+      delete-old-versions    t  ; Automatically delete excess backups:
+      kept-new-versions      10 ; how many of the newest versions to keep
       kept-old-versions      5)
 
+;; Fonts
+(set-face-attribute 'default nil :font "JetBrainsMono Nerd Font" :height 120)
+(set-face-attribute 'fixed-pitch nil :font "JetBrainsMono Nerd Font" :height 130)
+(set-face-attribute 'variable-pitch nil :font "Arial" :height 140 :weight 'regular)
+
+;; (global-set-key (kbd "M-o") 'other-window) ;; Rebind key for changing window
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+;; Line numbers in mode line and buffer
+(column-number-mode t)
+(line-number-mode t)
+(global-hl-line-mode t)
+
+(global-display-line-numbers-mode t)
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                shell-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(global-auto-revert-mode t) ;; Update changed files
+
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+
+;; Initialize package manager
 (require 'package)
 ;; (add-to-list 'package-archives
 ;; 	     '("melpa" . "http://melpa.org/packages/") t)
@@ -63,6 +68,23 @@
   (package-install 'use-package))
 (require 'use-package)
 (setq use-package-always-ensure t)
+
+;; Keep config directory clean
+(setq user-emacs-directory (expand-file-name "~/.cache/emacs/")
+			url-history-file (expand-file-name "url/history" user-emacs-directory))
+(use-package no-littering
+						 :ensure t)
+
+
+;; Completion
+;;(use-package company
+;;  :ensure t
+;;  :bind (:map company-active-map
+;;              ("C-n" . company-select-next)
+;;              ("C-p" . company-select-previous))
+;;  :config
+;;  (setq company-idle-delay 0.3)
+;;  (global-company-mode t))
 
 (use-package ivy
   :diminish
@@ -82,76 +104,82 @@
   :config
   (ivy-mode 1))
 
+;; (global-set-key (kbd "C-M-j") 'counsel-switch-buffer)
+;; (define-key emacs-lisp-mode-map (kbd "C-x M-t") 'counsel-load-theme) ;; Defining a key binding for a specific mode map
 
-  (use-package ivy-rich
-    :init
-    (ivy-rich-mode 1))
+(use-package ivy-rich
+  :init
+  (ivy-rich-mode 1))
 
-  (use-package counsel
-    :bind (("M-x" . counsel-M-x)
-           ("C-x b" . counsel-ibuffer)
-           ("C-x C-f" . counsel-find-file)
-           :map minibuffer-local-map
-           ("C-r" . 'counsel-minibuffer-history))
-    :config
-    (setq ivy-initial-inputs-alist nil))
+(use-package counsel
+  :bind (("M-x" . counsel-M-x)
+         ("C-x b" . counsel-ibuffer)
+         ("C-x C-f" . counsel-find-file)
+         :map minibuffer-local-map
+         ("C-r" . 'counsel-minibuffer-history))
+  :config
+  (setq ivy-initial-inputs-alist nil))
 
-  (use-package rainbow-delimiters
-    :hook (prog-mode . rainbow-delimiters-mode))
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
 
-  ;; Helpful
-  (use-package helpful
-    :custom
-    (counsel-describe-function-function #'helpful-callable)
-    (counsel-describe-variable-function #'helpful-variable)
-    :bind
-    ([remap describe-function] . counsel-describe-function)
-    ([remap describe-command] . helpful-command)
-    ([remap describe-variable] . counsel-describe-variable)
-    ([remap describe-key] . helpful-key))
+;; Helpful
+(use-package helpful
+  :custom
+  (counsel-describe-function-function #'helpful-callable)
+  (counsel-describe-variable-function #'helpful-variable)
+  :bind
+  ([remap describe-function] . counsel-describe-function)
+  ([remap describe-command] . helpful-command)
+  ([remap describe-variable] . counsel-describe-variable)
+  ([remap describe-key] . helpful-key))
 
+;; Doom modeline
+;; NOTE: The first time this is loaded, you need to run:
+;; M-x all-the-icons-install-fonts
 (use-package all-the-icons)
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 28)))
 
+;; Color scheme
+;;(use-package spacemacs-theme
+;;  :config
+;;  (setq spacemacs-theme-comment-bg nil)
+;;  (setq spacemacs-theme-comment-italic t)
+;;  (load-theme 'spacemacs-dark))
+
 (use-package doom-themes
   :config
 ;;  (load-theme 'doom-gruvbox t)
 ;;  (load-theme 'doom-one t)
   (load-theme 'doom-dracula t)
-)
+ )
 
-;; Use which-key to see available keybindings
+;; WhichKey
 (use-package which-key
-    :init (which-key-mode)
-    :diminish which-key-mode
-    :config
-    (setq which-key-idle-delay 0.3))
-
-(use-package general
+  :init (which-key-mode)
+  :diminish which-key-mode
   :config
-  (general-create-definer os/leader-keys
-      :keymaps '(normal insert visual emacs)
-      :prefix "SPC"
-      :global-prefix "C-SPC"))
+  (setq which-key-idle-delay 0.3))
 
-(os/leader-keys ;; Example usage
-  "t" '(:ignore t :which-key "Toggles")
-  "tt" '(counsel-load-theme :which-key "choose theme"))
+;; Vim bindings (evil-mode)
+;;(use-package evil
+;;  :config
+;;  (evil-mode 1))
 
-(use-package hydra)
-
-;; Example usage
-(defhydra hydra-text-scale (:timeout 4)
-    "scale text"
-    ("j" text-scale-increase "in")
-    ("k" text-scale-decrease "out")
-    ("f" nil "finished" :exit t))
-
-(os/leader-keys
-    "ts" 'hydra-text-scale/body :which-key "scale text")
+;;(defun os/evil-hook ()
+;;  (dolist (mode '(custom-mode
+;;                  eshell-mode
+;;                  git-rebase-mode
+;;                  erc-mode
+;;                  circe-server-mode
+;;                  circe-chat-mode
+;;                  circe-query-mode
+;;                  sauron-mode
+;;                  term-mode))
+;;    (add-to-list 'evil-emacs-state-modes mode)))
 
 (use-package undo-tree
   :init
@@ -184,6 +212,34 @@
   :config
   (evil-collection-init))
 
+;; General
+(use-package general
+  :config
+;;  (general-define-key
+;;    "M-o" 'other-window
+;;    "C-M-j" 'counsel-switch-buffer)
+
+  (general-create-definer os/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+
+  (os/leader-keys
+    "t" '(:ignore t :which-key "Toggles")
+    "tt" '(counsel-load-theme :which-key "choose theme")))
+
+;; Hydra
+(use-package hydra)
+
+(defhydra hydra-text-scale (:timeout 4)
+  "scale text"
+  ("j" text-scale-increase "in")
+  ("k" text-scale-decrease "out")
+  ("f" nil "finished" :exit t))
+
+(os/leader-keys
+  "ts" 'hydra-text-scale/body :which-key "scale text")
+
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
@@ -206,10 +262,21 @@
   "po" '(counsel-projectile-switch-project :which-key "Switch project")
  )
 
+;; Magit
 (use-package magit
   :commands (magit-status magit-set-current-branch)
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+;; (use-package forge)
+
+;; Org mode
+(defun os/org-mode-setup ()
+  (org-indent-mode)
+  (variable-pitch-mode 1)
+  (auto-fill-mode 0)
+  (visual-line-mode 1)
+  (setq evil-auto-indent nil))
 
 (defun os/org-mode-font-setup ()
     (font-lock-add-keywords 'org-mode
@@ -233,14 +300,6 @@
     (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
     (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
     (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
-
-(defun os/org-mode-setup ()
-  (org-indent-mode)
-  (variable-pitch-mode 1)
-  (auto-fill-mode 0)
-  (visual-line-mode 1)
-  (setq evil-auto-indent nil))
-
 
 (use-package org
   :hook (org-mode . os/org-mode-setup)
@@ -288,19 +347,16 @@
           (org-agenda-files org-agenda-files)))
     ))
 
-  ;; TODO states
   (setq org-todo-keywords
         '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
           (sequence "PLAN(p)" "READY(r)" "ACTIVE(a)" "|" "COMPLETED(c)" "CANC(k@)")))
 
-  ;; Refile (move item)
   (setq org-refile-targets
         '(("Archive.org" :maxlevel . 1)
           ("Tasks.org" :maxlevel . 1)
           ("Notes.org" :maxlevel . 1)))
   (advice-add 'org-refile :after 'org-save-all-org-buffers)
 
-  ;; Capture templates for quick notes
    (setq org-capture-templates
     `(("t" "Task" entry (file+olp "~/org/Tasks.org" "Inbox")
        "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
@@ -342,30 +398,6 @@
   "oO" '(org-open-at-point :which-key "Open link")
 )
 
-(os/leader-keys ;; Toggle monospace font
+(os/leader-keys
   "tf" '(variable-pitch-mode :which-key "Variable pitch")
  )
-
-(org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (python . t)))
-
-(setq org-confirm-babel-evaluate nil)
-(setq org-babel-python-command "python3") ;; Fix the python executable name
-(push '("conf-unix" . conf-unix) org-src-lang-modes)
-
-(require 'org-tempo)
-
-(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-(add-to-list 'org-structure-template-alist '("py" . "src python"))
-(add-to-list 'org-structure-template-alist '("cf" . "src conf-unix"))
-
-(defun os/org-babel-tangle-config ()
-  (when (string-equal (buffer-file-name)
-                      (expand-file-name "~/.emacs.d/Emacs.org"))
-    (let ((org-confirm-babel-evaluate nil))
-      (org-babel-tangle))))
-
-(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'os/org-babel-tangle-config)))

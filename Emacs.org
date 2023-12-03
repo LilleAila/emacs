@@ -1,3 +1,9 @@
+#+title Emacs Configuration
+#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
+
+* Basic Configuration
+
+#+begin_src emacs-lisp
 ;; Hmm virker det fortsatt da?
   (setq-default
    inhibit-startup-message t
@@ -39,16 +45,35 @@
                   eshell-mode-hook))
     (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(set-face-attribute 'default nil :font "JetBrainsMono Nerd Font" :height 120)
-(set-face-attribute 'fixed-pitch nil :font "JetBrainsMono Nerd Font" :height 120)
-(set-face-attribute 'variable-pitch nil :font "Arial" :height 140 :weight 'regular)
+#+end_src
 
-(setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
-      backup-by-copying      t
-      version-control        t
-      delete-old-versions    t
-      kept-new-versions      10
-      kept-old-versions      5)
+** Font Configuration
+
+#+begin_src emacs-lisp
+
+  (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font" :height 120)
+  (set-face-attribute 'fixed-pitch nil :font "JetBrainsMono Nerd Font" :height 120)
+  (set-face-attribute 'variable-pitch nil :font "Arial" :height 140 :weight 'regular)
+
+#+end_src
+
+** Move backups
+
+#+begin_src emacs-lisp
+
+  (setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
+        backup-by-copying      t
+        version-control        t
+        delete-old-versions    t
+        kept-new-versions      10
+        kept-old-versions      5)
+
+#+end_src
+
+* Packages
+** Initialize use-package
+
+#+begin_src emacs-lisp
 
 (require 'package)
 ;; (add-to-list 'package-archives
@@ -63,6 +88,12 @@
   (package-install 'use-package))
 (require 'use-package)
 (setq use-package-always-ensure t)
+
+#+end_src
+
+** Ivy completion
+
+#+begin_src emacs-lisp
 
 (use-package ivy
   :diminish
@@ -110,11 +141,25 @@
     ([remap describe-variable] . counsel-describe-variable)
     ([remap describe-key] . helpful-key))
 
+#+end_src
+
+** Doom modeline
+
+NOTE: The first time =all-the-icons= is loaded, you have to run =M-x all-the-icons-install-fonts=
+
+#+begin_src emacs-lisp
+
 (use-package all-the-icons)
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 28)))
+
+#+end_src
+
+** Themes
+
+#+begin_src emacs-lisp
 
 (use-package doom-themes
   :config
@@ -123,23 +168,37 @@
   (load-theme 'doom-dracula t)
 )
 
-;; Use which-key to see available keybindings
-(use-package which-key
-    :init (which-key-mode)
-    :diminish which-key-mode
+#+end_src
+
+** Key-bindings
+
+#+begin_src emacs-lisp
+
+  ;; Use which-key to see available keybindings
+  (use-package which-key
+      :init (which-key-mode)
+      :diminish which-key-mode
+      :config
+      (setq which-key-idle-delay 0.3))
+
+  (use-package general
     :config
-    (setq which-key-idle-delay 0.3))
+    (general-create-definer os/leader-keys
+        :keymaps '(normal insert visual emacs)
+        :prefix "SPC"
+        :global-prefix "C-SPC"))
 
-(use-package general
-  :config
-  (general-create-definer os/leader-keys
-      :keymaps '(normal insert visual emacs)
-      :prefix "SPC"
-      :global-prefix "C-SPC"))
+  (os/leader-keys ;; Example usage
+    "t" '(:ignore t :which-key "Toggles")
+    "tt" '(counsel-load-theme :which-key "choose theme"))
 
-(os/leader-keys ;; Example usage
-  "t" '(:ignore t :which-key "Toggles")
-  "tt" '(counsel-load-theme :which-key "choose theme"))
+#+end_src
+
+** Hydra
+
+Repeated commands
+
+#+begin_src emacs-lisp
 
 (use-package hydra)
 
@@ -153,11 +212,23 @@
 (os/leader-keys
     "ts" 'hydra-text-scale/body :which-key "scale text")
 
+#+end_src
+
+** Undo-tree
+
+#+begin_src emacs-lisp
+
 (use-package undo-tree
   :init
   (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
   :config
   (global-undo-tree-mode))
+
+#+end_src
+
+** Vim-bindings with evil
+
+#+begin_src emacs-lisp
 
 ;; C-w for evil bindings
 (use-package evil ;; C-z to toggle between evil and emacs mode
@@ -184,6 +255,14 @@
   :config
   (evil-collection-init))
 
+#+end_src
+
+** Projectile
+
+Project management
+
+#+begin_src emacs-lisp
+
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
@@ -206,10 +285,25 @@
   "po" '(counsel-projectile-switch-project :which-key "Switch project")
  )
 
+#+end_src
+
+** Magit
+
+#+begin_src emacs-lisp
+
 (use-package magit
   :commands (magit-status magit-set-current-branch)
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+#+end_src
+
+* Org Mode
+** Configure Org Mode
+
+*** Setup different font sizes for headings
+
+#+begin_src emacs-lisp
 
 (defun os/org-mode-font-setup ()
     (font-lock-add-keywords 'org-mode
@@ -234,87 +328,106 @@
     (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
     (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
 
-(defun os/org-mode-setup ()
-  (org-indent-mode)
-  (variable-pitch-mode 1)
-  (auto-fill-mode 0)
-  (visual-line-mode 1)
-  (setq evil-auto-indent nil))
+#+end_src
+
+*** Setting up the package
+
+#+begin_src emacs-lisp
 
 
-(use-package org
-  :hook (org-mode . os/org-mode-setup)
-  :config
-  (setq org-ellipsis " ▾")
-  (os/org-mode-font-setup)
+  (defun os/org-mode-setup ()
+    (org-indent-mode)
+    (variable-pitch-mode 1)
+    (auto-fill-mode 0)
+    (visual-line-mode 1)
+    (setq evil-auto-indent nil))
 
-  (setq org-agenda-start-with-log-mode t)
-  (setq org-log-done 'time)
-  (setq org-log-into-drawer t)
 
-  (setq org-agenda-files
-        '("~/org/Tasks.org"
-          "~/org/Notes.org"))
+  (use-package org
+    :hook (org-mode . os/org-mode-setup)
+    :config
+    (setq org-ellipsis " ▾")
+    (os/org-mode-font-setup)
 
-  (setq org-tag-alist ;; Custom tags for C-c C-q
-        '((:startgroup)
-          ;; Put mutually exclusive tags here
-          (:endgroup)
-          ("@home" . ?H)
-          ("@work" . ?W)
-          ("programming" . ?p)
-          ("agenda" . ?a)
-          ("note" . ?n)
-          ("idea" . ?i)))
+    (setq org-agenda-start-with-log-mode t)
+    (setq org-log-done 'time)
+    (setq org-log-into-drawer t)
 
-    ;; Configure custom agenda views
-    (setq org-agenda-custom-commands
-    '(("d" "Dashboard"
-        ((agenda "" ((org-deadline-warning-days 7)))
-        (todo "NEXT"
-            ((org-agenda-overriding-header "Next Tasks")))
-        (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))
-        ))
+    (setq org-agenda-files
+          '("~/org/Tasks.org"
+            "~/org/Notes.org"))
 
-        ("n" "Next Tasks"
-        ((todo "NEXT"
-               ((org-agenda-overriding-header "Next Tasks")))))
+    (setq org-tag-alist ;; Custom tags for C-c C-q
+          '((:startgroup)
+            ;; Put mutually exclusive tags here
+            (:endgroup)
+            ("@home" . ?H)
+            ("@work" . ?W)
+            ("programming" . ?p)
+            ("agenda" . ?a)
+            ("note" . ?n)
+            ("idea" . ?i)))
 
-        ("p" "Programming Tasks" tags-todo "+programming-work") ;; Filter by tags
+      ;; Configure custom agenda views
+      (setq org-agenda-custom-commands
+      '(("d" "Dashboard"
+          ((agenda "" ((org-deadline-warning-days 7)))
+          (todo "NEXT"
+              ((org-agenda-overriding-header "Next Tasks")))
+          (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))
+          ))
 
-        ("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
-         ((org-agenda-overriding-header "Low Effort Tasks")
-          (org-agenda-max-todos 20)
-          (org-agenda-files org-agenda-files)))
-    ))
+          ("n" "Next Tasks"
+          ((todo "NEXT"
+                 ((org-agenda-overriding-header "Next Tasks")))))
 
-  ;; TODO states
-  (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
-          (sequence "PLAN(p)" "READY(r)" "ACTIVE(a)" "|" "COMPLETED(c)" "CANC(k@)")))
+          ("p" "Programming Tasks" tags-todo "+programming-work") ;; Filter by tags
 
-  ;; Refile (move item)
-  (setq org-refile-targets
-        '(("Archive.org" :maxlevel . 1)
-          ("Tasks.org" :maxlevel . 1)
-          ("Notes.org" :maxlevel . 1)))
-  (advice-add 'org-refile :after 'org-save-all-org-buffers)
-
-  ;; Capture templates for quick notes
-   (setq org-capture-templates
-    `(("t" "Task" entry (file+olp "~/org/Tasks.org" "Inbox")
-       "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
-
-      ("n" "Note" entry (file+olp "~/org/Notes.org" "Random Notes")
-                                  "** %?" :empty-lines 0)
+          ("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
+           ((org-agenda-overriding-header "Low Effort Tasks")
+            (org-agenda-max-todos 20)
+            (org-agenda-files org-agenda-files)))
       ))
-)
+
+    ;; TODO states
+    (setq org-todo-keywords
+          '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+            (sequence "PLAN(p)" "READY(r)" "ACTIVE(a)" "|" "COMPLETED(c)" "CANC(k@)")))
+
+    ;; Refile (move item)
+    (setq org-refile-targets
+          '(("Archive.org" :maxlevel . 1)
+            ("Tasks.org" :maxlevel . 1)
+            ("Notes.org" :maxlevel . 1)))
+    (advice-add 'org-refile :after 'org-save-all-org-buffers)
+
+    ;; Capture templates for quick notes
+     (setq org-capture-templates
+      `(("t" "Task" entry (file+olp "~/org/Tasks.org" "Inbox")
+         "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
+
+        ("n" "Note" entry (file+olp "~/org/Notes.org" "Random Notes")
+                                    "** %?" :empty-lines 0)
+        ))
+  )
+
+#+end_src
+
+*** Better header buulets
+
+#+begin_src emacs-lisp
 
 (use-package org-bullets
   :after org
   :hook (org-mode . org-bullets-mode)
   :custom
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+#+end_src
+
+*** Centering the view
+
+#+begin_src emacs-lisp
 
 (defun os/org-mode-visual-fill ()
   (setq visual-fill-column-width 150
@@ -324,6 +437,13 @@
   :after org
   :defer t
   :hook (org-mode . os/org-mode-visual-fill))
+
+#+end_src
+
+*** Keybindings
+
+#+begin_src emacs-lisp
+
 
 (os/leader-keys
   "o" '(:ignore t :which-key "Org mode")
@@ -346,21 +466,40 @@
   "tf" '(variable-pitch-mode :which-key "Variable pitch")
  )
 
-(org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (python . t)))
+#+end_src
 
-(setq org-confirm-babel-evaluate nil)
-(setq org-babel-python-command "python3") ;; Fix the python executable name
-(push '("conf-unix" . conf-unix) org-src-lang-modes)
+** Configure Babel Languages
 
-(require 'org-tempo)
+#+begin_src emacs-lisp
 
-(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-(add-to-list 'org-structure-template-alist '("py" . "src python"))
-(add-to-list 'org-structure-template-alist '("cf" . "src conf-unix"))
+  (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp . t)
+       (python . t)))
+
+  (setq org-confirm-babel-evaluate nil)
+  (setq org-babel-python-command "python3") ;; Fix the python executable name
+  (push '("conf-unix" . conf-unix) org-src-lang-modes)
+
+#+end_src
+
+*** Configure Babel Structure Templates
+You can use for example =<el TAB= to insert en elisp code block
+
+#+begin_src emacs-lisp
+
+  (require 'org-tempo)
+
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("cf" . "src conf-unix"))
+
+#+end_src
+
+** Auto-Tangle Configuration Files
+
+#+begin_src emacs-lisp
 
 (defun os/org-babel-tangle-config ()
   (when (string-equal (buffer-file-name)
@@ -369,3 +508,5 @@
       (org-babel-tangle))))
 
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'os/org-babel-tangle-config)))
+
+#+end_src
