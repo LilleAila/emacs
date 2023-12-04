@@ -6,46 +6,47 @@ Mostly stolen from [[https://youtube.com/@SystemCrafters][System Crafters]]
 * Basic Configuration
 
 #+begin_src emacs-lisp
-;; Hmm virker det fortsatt da?
-  (setq-default
-   inhibit-startup-message t
-   custom-file "~/.emacs.d/custom-file.el"
-   fill-column 90
-   frame-title-format (format "%s's Emacs" (capitalize user-login-name))
-   create-lockfiles nil
-   indent-tabs-mode nil
-   auto-save-default nil
-   enable-recursive-minibuffers t)
-  (load-file custom-file)
-  (global-auto-revert-mode t) ;; Update changed files
-  (fset 'yes-or-no-p 'y-or-n-p)
-  (tool-bar-mode -1)
-  (menu-bar-mode -1)
-  (scroll-bar-mode -1)
+  ;; Hmm virker det fortsatt da?
+    (setq-default
+     inhibit-startup-message t
+     custom-file "~/.emacs.d/custom-file.el"
+     fill-column 90
+     frame-title-format (format "%s's Emacs" (capitalize user-login-name))
+     create-lockfiles nil
+     indent-tabs-mode nil
+     auto-save-default nil
+     enable-recursive-minibuffers t)
+    (load-file custom-file)
+    (global-auto-revert-mode t) ;; Update changed files
+    (fset 'yes-or-no-p 'y-or-n-p)
+    (tool-bar-mode -1)
+    (menu-bar-mode -1)
+    (scroll-bar-mode -1)
 
-  (add-hook 'before-save-hook 'delete-trailing-whitespace)
+    (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
-  ;; Make ESC do the same as C-g
-  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+    ;; Make ESC do the same as C-g
+    (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
-  ;; Change meta to command on macOS
-  (when (eq system-type 'darwin)
-    (setq
-     mac-option-modifier nil
-     mac-right-option-modifier nil
-     mac-command-modifier 'meta))
+    ;; Change meta to command on macOS
+    (when (eq system-type 'darwin)
+      (setq
+       mac-option-modifier nil
+       mac-right-option-modifier nil
+       mac-command-modifier 'meta))
 
-  ;; Line numbers in mode line and buffer
-  (column-number-mode t)
-  (line-number-mode t)
-  (global-hl-line-mode t)
+    ;; Line numbers in mode line and buffer
+    (column-number-mode t)
+    (line-number-mode t)
+    (global-hl-line-mode t)
 
-  (global-display-line-numbers-mode t)
-  (dolist (mode '(org-mode-hook ;; Disable line numbers for certain modes
-                  term-mode-hook
-                  shell-mode-hook
-                  eshell-mode-hook))
-    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+    (global-display-line-numbers-mode t)
+    (dolist (mode '(org-mode-hook ;; Disable line numbers for certain modes
+                    term-mode-hook
+                    shell-mode-hook
+                    treemacs-mode-hook
+                    eshell-mode-hook))
+      (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 #+end_src
 
@@ -259,6 +260,100 @@ Repeated commands
 
 #+end_src
 
+* Development
+** Comments
+
+Toggle line comments with =M-/=
+
+#+begin_src emacs-lisp
+
+  (use-package evil-nerd-commenter
+    :bind ("M-/" . evilnc-comment-or-uncomment-lines))
+
+#+end_src
+
+** Languages
+
+*** LSP Language Servers
+
+All supported language servers can be found [[https://emacs-lsp.github.io/lsp-mode/page/languages/][here]]. Some of them support automatic installation.
+
+#+begin_src emacs-lisp
+
+  (defun os/lsp-mode-setup ()
+    (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
+    (lsp-headerline-breadcrumb-mode))
+
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :hook (lsp-mode . os/lsp-mode-setup)
+    :init
+    (setq lsp-keymap-prefix "C-c l")
+    :config
+    (lsp-enable-which-key-integration t))
+
+  (use-package lsp-ui
+    :hook (lsp-mode . lsp-ui-mode)
+    :custom
+    (lsp-ui-doc-position 'bottom)
+    (lsp-ui-doc-show-with-cursor t))
+
+  (use-package lsp-treemacs ;; treemacs and lsp-treemacs-symbols commands
+    :after lsp-mode)
+
+  (os/leader-keys
+    "e" '(:ignore t :which-key "Explorer")
+    "et" '(treemacs :which-key "Toggle tree")
+    "es" '(lsp-treemacs-symbols :which-key "Show symbols")
+  )
+
+  (use-package lsp-ivy)
+
+#+end_src
+
+*** Company Completion
+
+#+begin_src emacs-lisp
+
+(use-package company
+  :after lsp-mode
+  :hook (lsp-mode . company-mode)
+  :bind (:map company-active-map
+         ("<tab>" . company-complete-selection))
+        (:map lsp-mode-map
+         ("<tab>" . company-indent-or-complete-common))
+  :custom
+  (company-minimum-prefix-length 1)
+  (company-idle-delay 0.0))
+
+(use-package company-box
+  :hook (company-mode . company-box-mode))
+
+#+end_src
+
+*** Fix PATH
+
+Emacs does not recognise node installations installed through nvm, so they have to be added manually. This will have to be changed for other computers.
+
+#+begin_src emacs-lisp
+
+(setenv "PATH" (concat (getenv "PATH") ":/Users/olaisolsvik/.nvm/versions/node/v20.3.1/bin"))
+(setq exec-path (append exec-path '("/Users/olaisolsvik/.nvm/versions/node/v20.3.1/bin")))
+
+#+end_src
+
+*** TypeScript
+
+#+begin_src emacs-lisp
+
+  (use-package typescript-mode
+    :mode "\\.ts\\'"
+    :hook (typescript-mode . lsp-deferred)
+    :config
+    (setq typescript-indent-level 2))
+
+#+end_src
+
 ** Projectile
 
 Project management
@@ -299,7 +394,6 @@ Project management
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 
 #+end_src
-
 * Org Mode
 ** Configure Org Mode
 
@@ -442,10 +536,18 @@ Project management
 
 #+end_src
 
-*** Keybindings
+*** Make latex preview larger
 
 #+begin_src emacs-lisp
 
+;; Double the LaTeX preview font size (C-c C-x C-l)
+;; (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
+
+#+end_src
+
+*** Keybindings
+
+#+begin_src emacs-lisp
 
 (os/leader-keys
   "o" '(:ignore t :which-key "Org mode")

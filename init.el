@@ -36,6 +36,7 @@
   (dolist (mode '(org-mode-hook ;; Disable line numbers for certain modes
                   term-mode-hook
                   shell-mode-hook
+                  treemacs-mode-hook
                   eshell-mode-hook))
     (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
@@ -184,6 +185,61 @@
   :config
   (evil-collection-init))
 
+(use-package evil-nerd-commenter
+  :bind ("M-/" . evilnc-comment-or-uncomment-lines))
+
+(defun os/lsp-mode-setup ()
+  (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
+  (lsp-headerline-breadcrumb-mode))
+
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook (lsp-mode . os/lsp-mode-setup)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t))
+
+(use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom
+  (lsp-ui-doc-position 'bottom)
+  (lsp-ui-doc-show-with-cursor t))
+
+(use-package lsp-treemacs ;; treemacs and lsp-treemacs-symbols commands
+  :after lsp-mode)
+
+(os/leader-keys
+  "e" '(:ignore t :which-key "Explorer")
+  "et" '(treemacs :which-key "Toggle tree")
+  "es" '(lsp-treemacs-symbols :which-key "Show symbols")
+)
+
+(use-package lsp-ivy)
+
+(use-package company
+  :after lsp-mode
+  :hook (lsp-mode . company-mode)
+  :bind (:map company-active-map
+         ("<tab>" . company-complete-selection))
+        (:map lsp-mode-map
+         ("<tab>" . company-indent-or-complete-common))
+  :custom
+  (company-minimum-prefix-length 1)
+  (company-idle-delay 0.0))
+
+(use-package company-box
+  :hook (company-mode . company-box-mode))
+
+(setenv "PATH" (concat (getenv "PATH") ":/Users/olaisolsvik/.nvm/versions/node/v20.3.1/bin"))
+(setq exec-path (append exec-path '("/Users/olaisolsvik/.nvm/versions/node/v20.3.1/bin")))
+
+(use-package typescript-mode
+  :mode "\\.ts\\'"
+  :hook (typescript-mode . lsp-deferred)
+  :config
+  (setq typescript-indent-level 2))
+
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
@@ -324,6 +380,9 @@
   :after org
   :defer t
   :hook (org-mode . os/org-mode-visual-fill))
+
+;; Double the LaTeX preview font size (C-c C-x C-l)
+;; (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
 
 (os/leader-keys
   "o" '(:ignore t :which-key "Org mode")
