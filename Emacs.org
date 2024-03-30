@@ -1,7 +1,8 @@
 #+title: Emacs Configuration
 #+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
 
-I have moved my emacs config into my NixOS dotfiles. It is located [[https://github.com/LilleAila/dotfiles/tree/main/home/programs/emacs][Here]]
+I have moved my emacs config into my NixOS dotfiles. It is located [[https://github.com/LilleAila/dotfiles/tree/main/home/programs/emacs][Here]].
+
 Mostly stolen from [[https://youtube.com/@SystemCrafters][System Crafters]]
 
 * Basic Configuration
